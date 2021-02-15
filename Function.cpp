@@ -141,7 +141,7 @@ string calcFunc(string expr, float param)
 	{
 		Pos = expr.find('-', Pos);
 		if (Pos > 0)
-			if (isdigit(expr[Pos - 1]) || expr[Pos - 1] == 'x')
+			if (isdigit(expr[Pos - 1]) || expr[Pos - 1] == 'x' || expr[Pos - 1] ==')')
 			{
 				expr.insert(Pos, 1, '+');
 			}
