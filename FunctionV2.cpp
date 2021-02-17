@@ -4,185 +4,227 @@
 #include <string>
 #include <cmath>
 
-enum class options
-{
-	function,
-	oprator,
-	parameter,
-	constant
-};
 
-enum class functions
+class node
 {
-	invalid,
-	abs,
-	ceil,
-	floor,
-	trunc,
-	round,
-	exp,
-	log,
-	sqrt,
-	cbrt,
-	sin,
-	cos,
-	tan,
-	asin,
-	acos,
-	atan,
-	sinh,
-	cosh,
-	tanh,
-	asinh,
-	acosh,
-	atanh,
-	erf,
-	erfc,
-	tgamma
-};
 
-union data
-{
-	std::string func="\0";
-	char op;
-	float nr;
-	data() 
+private:
+	enum class options
 	{
-		op = '\0';
-		nr = 0;
+		function,
+		oprator,
+		parameter,
+		constant
 	};
-	~data() {};
-};
+	enum class functions
+	{
+		invalid,
+		abs,
+		ceil,
+		floor,
+		trunc,
+		round,
+		exp,
+		log,
+		sqrt,
+		cbrt,
+		sin,
+		cos,
+		tan,
+		asin,
+		acos,
+		atan,
+		sinh,
+		cosh,
+		tanh,
+		asinh,
+		acosh,
+		atanh,
+		erf,
+		erfc,
+		tgamma
+	};
+	union data
+	{
+		functions func = functions::invalid;
+		char op;
+		float nr;
+		data()
+		{
+			op = '\0';
+			nr = 0;
+		};
+		~data() {};
+	};
 
-struct node
-{
+private:
 	options type = options::oprator;
 	data field;
     node* left=nullptr;
     node* right=nullptr;
+
+public:
+	node(std::string);
+	~node()
+	{
+		delete left;
+		delete right;
+	}
+	float const computeTree(float parameter);
+	void simplifyTree();
+	static functions resolveFunction(std::string fnc);
 };
 
-unsigned int findClosed(std::string str, unsigned int openPos)
+unsigned int findPair(std::string str, unsigned int pos, bool open)
 {
 	unsigned int count = 0;
-	for (unsigned int i = openPos; i < str.length(); i++)
+	if (open)
 	{
-		switch (str[i])
+		for (unsigned int i = pos; i < str.length(); i++)
 		{
-		case '(':
-		{
-			count++;
-			break;
-		}
-		case ')':
-		{
-			count--;
-			break;
-		}
+			switch (str[i])
+			{
+			case '(':
+			{
+				count++;
+				break;
+			}
+			case ')':
+			{
+				count--;
+				break;
+			}
 
-		default:
-			break;
+			default:
+				break;
+			}
+			if (count == 0)
+				return i;
 		}
-		if (count == 0)
-			return i;
+	}
+	else
+	{
+		for (unsigned int i = pos; i > 0; i--)
+		{
+			switch (str[i])
+			{
+			case '(':
+			{
+				count--;
+				break;
+			}
+			case ')':
+			{
+				count++;
+				break;
+			}
+
+			default:
+				break;
+			}
+			if (count == 0)
+				return i;
+		}
 	}
 	return 0;
 }
 
-functions resolveFunction(std::string fnc)
-{
-	if (fnc == "abs")
-		return functions::abs;
-	if (fnc == "sin")
-		return functions::sin;
-	if (fnc == "cos")
-		return functions::cos;
-	if (fnc == "tan")
-		return functions::tan;
-	if (fnc == "sqrt")
-		return functions::sqrt;
-	if (fnc == "log")
-		return functions::log;
-	if (fnc == "exp")
-		return functions::exp;
-	if (fnc == "ceil")
-		return functions::ceil;
-	if (fnc == "floor")
-		return functions::floor;
-	if (fnc == "trunc")
-		return functions::trunc;
-	if (fnc == "round")
-		return functions::round;
-	if (fnc == "cbrt")
-		return functions::cbrt;
-	if (fnc == "asin")
-		return functions::asin;
-	if (fnc == "acos")
-		return functions::acos;
-	if (fnc == "atan")
-		return functions::atan;
-	if (fnc == "sinh")
-		return functions::sinh;
-	if (fnc == "cosh")
-		return functions::cosh;
-	if (fnc == "tanh")
-		return functions::tanh;
-	if (fnc == "asinh")
-		return functions::asinh;
-	if (fnc == "acosh")
-		return functions::acosh;
-	if (fnc == "atanh")
-		return functions::atanh;
-	if (fnc == "erf")
-		return functions::erf;
-	if (fnc == "erfc")
-		return functions::erfc;
-	if (fnc == "tgamma")
-		return functions::tgamma;
-	return functions::invalid;
-
-}
 
 std::string processExpr(std::string expr)
 {
-	std::string newstr;
-    unsigned int Pos = expr.find_first_of("0123456789");
-    while (Pos != std::string::npos)
-    {
-        Pos = expr.find_first_of("0123456789", Pos);
-    }
-	return newstr;
+	
+    unsigned int Pos = expr.find('-');
+	while (Pos > 0 && Pos !=std::string::npos && expr[Pos - 1] != '(')
+	{
+		expr.insert(Pos, 1, '+');
+		Pos += 2;
+		Pos = expr.find('-', Pos);
+	}
+	return expr;
 };
 
-node* extract(std::string expr)
+node::functions node::resolveFunction(std::string fnc)
 {
-    node* elem = new node;
+	if (fnc == "abs")
+		return node::functions::abs;
+	if (fnc == "sin")
+		return node::functions::sin;
+	if (fnc == "cos")
+		return node::functions::cos;
+	if (fnc == "tan")
+		return node::functions::tan;
+	if (fnc == "sqrt")
+		return node::functions::sqrt;
+	if (fnc == "log")
+		return node::functions::log;
+	if (fnc == "exp")
+		return node::functions::exp;
+	if (fnc == "ceil")
+		return node::functions::ceil;
+	if (fnc == "floor")
+		return node::functions::floor;
+	if (fnc == "trunc")
+		return node::functions::trunc;
+	if (fnc == "round")
+		return node::functions::round;
+	if (fnc == "cbrt")
+		return node::functions::cbrt;
+	if (fnc == "asin")
+		return node::functions::asin;
+	if (fnc == "acos")
+		return node::functions::acos;
+	if (fnc == "atan")
+		return node::functions::atan;
+	if (fnc == "sinh")
+		return node::functions::sinh;
+	if (fnc == "cosh")
+		return node::functions::cosh;
+	if (fnc == "tanh")
+		return node::functions::tanh;
+	if (fnc == "asinh")
+		return node::functions::asinh;
+	if (fnc == "acosh")
+		return node::functions::acosh;
+	if (fnc == "atanh")
+		return node::functions::atanh;
+	if (fnc == "erf")
+		return node::functions::erf;
+	if (fnc == "erfc")
+		return node::functions::erfc;
+	if (fnc == "tgamma")
+		return node::functions::tgamma;
+	return node::functions::invalid;
+
+}
+
+node::node(std::string expr)
+{
     unsigned int Pos = expr.find("(");
 	if (Pos != std::string::npos)
 	{
-		unsigned int closed = findClosed(expr, Pos);
+		unsigned int closed = findPair(expr, Pos, 1);
 		if (closed < expr.length() - 1)
 		{
-			elem->type = options::oprator;
-			elem->field.op = expr[closed + 1];
+			type = options::oprator;
+			field.op = expr[closed + 1];
 
-			std::string left = expr.substr(Pos + 1, closed - Pos - 1);
+			std::string leftexpr = expr.substr(Pos + 1, closed - Pos - 1);
 
 			Pos = closed + 2;
-			closed = findClosed(expr, Pos);
-			std::string right = expr.substr(Pos + 1, closed - Pos - 1);
+			closed = findPair(expr, Pos, 1);
+			std::string rightexpr = expr.substr(Pos + 1, closed - Pos - 1);
 
-			elem->left = extract(left);
-			elem->right = extract(right);
+			left = new node(leftexpr);
+			right = new node(rightexpr);
 
 		}
 		else
 		{
-			elem->type = options::function;
-			elem->field.func= expr.substr(0, Pos);
+			type = options::function;
+			field.func = resolveFunction(expr.substr(0, Pos));
 
-			std::string right = expr.substr(Pos + 1, closed - Pos - 1);
-			elem->right = extract(right);
+			std::string rightexpr = expr.substr(Pos + 1, closed - Pos - 1);
+			right = new node(rightexpr);
 
 		}
 	}
@@ -190,23 +232,55 @@ node* extract(std::string expr)
 	{
 		if (expr == "x")
 		{
-			elem->type = options::parameter;
+			type = options::parameter;
 		}
 		else
 		{
-			elem->type = options::constant;
-			elem->field.nr = stof(expr);
+			type = options::constant;
+			field.nr = stof(expr);
 		}
 	}
-	return elem;
 }
-float computeTree(const node* start, float parameter)
+
+void node::simplifyTree()
 {
-	switch (start->type)
+	if (left != nullptr && right != nullptr)
+	{
+		left->simplifyTree();
+		right->simplifyTree();
+		if (left->type == options::constant && right->type == options::constant)
+		{
+			field.nr = this->computeTree(0);
+			type = options::constant;
+			delete left;
+			left = nullptr;
+			delete right;
+			right = nullptr;
+		}
+	}
+	else
+	{
+		if (right != nullptr)
+		{
+			right->simplifyTree();
+			if (right->type == options::constant)
+			{
+				field.nr = this->computeTree(0);
+				type = options::constant;
+				delete right;
+				right = nullptr;
+			}
+		}
+	}
+}
+
+float const node::computeTree(float parameter)
+{
+	switch (type)
 	{
 	case options::constant:
 	{
-		return start->field.nr;
+		return field.nr;
 	}
 	case options::parameter:
 	{
@@ -214,23 +288,23 @@ float computeTree(const node* start, float parameter)
 	}
 	case options::oprator:
 	{
-		switch (start->field.op)
+		switch (field.op)
 		{
 		case '^':
 		{
-			return pow(computeTree(start->left, parameter), computeTree(start->right, parameter));
+			return pow(left->computeTree(parameter), right->computeTree(parameter));
 		}
 		case '*':
 		{
-			return computeTree(start->left, parameter) * computeTree(start->right, parameter);
+			return left->computeTree(parameter) * right->computeTree(parameter);
 		}
 		case '/':
 		{
-			return computeTree(start->left, parameter) / computeTree(start->right, parameter);
+			return left->computeTree(parameter) / right->computeTree(parameter);
 		}
 		case '+':
 		{
-			return computeTree(start->left, parameter) + computeTree(start->right, parameter);
+			return left->computeTree(parameter) + right->computeTree(parameter);
 		}
 		default:
 		{
@@ -240,7 +314,7 @@ float computeTree(const node* start, float parameter)
 	}
 	case options::function:
 	{
-		switch (resolveFunction(start->field.func))
+		switch (field.func)
 		{
 		case functions::invalid:
 		{
@@ -248,99 +322,99 @@ float computeTree(const node* start, float parameter)
 		}
 		case functions::abs:
 		{
-			return abs(computeTree(start->right, parameter));
+			return abs(right->computeTree(parameter));
 		}
 		case functions::sin:
 		{
-			return sin(computeTree(start->right, parameter));
+			return sin(right->computeTree(parameter));
 		}
 		case functions::cos:
 		{
-			return cos(computeTree(start->right, parameter));
+			return cos(right->computeTree(parameter));
 		}
 		case functions::tan:
 		{
-			return tan(computeTree(start->right, parameter));
+			return tan(right->computeTree(parameter));
 		}
 		case functions::sqrt:
 		{
-			return sqrt(computeTree(start->right, parameter));
+			return sqrt(right->computeTree(parameter));
 		}
 		case functions::log:
 		{
-			return log(computeTree(start->right, parameter));
+			return log(right->computeTree(parameter));
 		}
 		case functions::exp:
 		{
-			return exp(computeTree(start->right, parameter));
+			return exp(right->computeTree(parameter));
 		}
 		case functions::ceil:
 		{
-			return ceil(computeTree(start->right, parameter));
+			return ceil(right->computeTree(parameter));
 		}
 		case functions::floor:
 		{
-			return floor(computeTree(start->right, parameter));
+			return floor(right->computeTree(parameter));
 		}
 		case functions::trunc:
 		{
-			return trunc(computeTree(start->right, parameter));
+			return trunc(right->computeTree(parameter));
 		}
 		case functions::round:
 		{
-			return round(computeTree(start->right, parameter));
+			return round(right->computeTree(parameter));
 		}
 		case functions::cbrt:
 		{
-			return cbrt(computeTree(start->right, parameter));
+			return cbrt(right->computeTree(parameter));
 		}
 		case functions::asin:
 		{
-			return asin(computeTree(start->right, parameter));
+			return asin(right->computeTree(parameter));
 		}
 		case functions::acos:
 		{
-			return acos(computeTree(start->right, parameter));
+			return acos(right->computeTree(parameter));
 		}
 		case functions::atan:
 		{
-			return atan(computeTree(start->right, parameter));
+			return atan(right->computeTree(parameter));
 		}
 		case functions::sinh:
 		{
-			return sinh(computeTree(start->right, parameter));
+			return sinh(right->computeTree(parameter));
 		}
 		case functions::cosh:
 		{
-			return cosh(computeTree(start->right, parameter));
+			return cosh(right->computeTree(parameter));
 		}
 		case functions::tanh:
 		{
-			return tanh(computeTree(start->right, parameter));
+			return tanh(right->computeTree(parameter));
 		}
 		case functions::asinh:
 		{
-			return asinh(computeTree(start->right, parameter));
+			return asinh(right->computeTree(parameter));
 		}
 		case functions::acosh:
 		{
-			return acosh(computeTree(start->right, parameter));
+			return acosh(right->computeTree(parameter));
 		}
 		case functions::atanh:
 		{
-			return atanh(computeTree(start->right, parameter));
+			return atanh(right->computeTree(parameter));
 		}
 		case functions::erf:
 		{
-			return erf(computeTree(start->right, parameter));
+			return erf(right->computeTree(parameter));
 		}
 		case functions::erfc:
 		{
-			return erfc(computeTree(start->right, parameter));
+			return erfc(right->computeTree(parameter));
 		}
 		case functions::tgamma:
 		{
-			return tgamma(computeTree(start->right, parameter));
+			return tgamma(right->computeTree(parameter));
 		}
 		}
 
@@ -351,12 +425,11 @@ float computeTree(const node* start, float parameter)
 	}
 	}
 }
+
 int main()
 {
-	std::string expr = "(sin((x)+(2)))+((-1)*(log(x)))";
-	node* operation = extract(expr);
-	float result = computeTree(operation, 5.f);
-	std::cout << result;
+	std::string expr = "((((-1)*(sin(x)))/(2))+(((-1)*(log((2)^(x))))*((-2)+((x)^(3)))))";
+	node operation(expr);
+	std::cout << operation.computeTree(0.5);
 }
-
 
