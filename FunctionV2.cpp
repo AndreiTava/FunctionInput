@@ -5,6 +5,7 @@
 #include <cmath>
 
 
+
 class node
 {
 
@@ -61,8 +62,8 @@ private:
 private:
 	options type = options::oprator;
 	data field;
-    node* left=nullptr;
-    node* right=nullptr;
+	node* left = nullptr;
+	node* right = nullptr;
 
 public:
 	node(std::string);
@@ -145,19 +146,25 @@ std::string processExpr(std::string expr)
 	KNOWN PROBLEMS / TODO (*,**,***, difficulty to fix),(+,++,+++, necessity of feature):
 
 
-	(?),  (YES)	DOES NOT ACTUALLY FUCKING WORK
-	(**), (+++) DOES NOT PROPERLY CHECK FOR SYNTAX ERRORS
+	(***),(+++) DOES NOT PROPERLY CHECK FOR SYNTAX ERRORS
 	(*),  (+++) DOES NOT SUPPORT SPACES IN EXPRESSION
 	(*),  (++)  DOES NOT REMOVE UNNECESSARY BRACKETS ( ((x)) )
-	(***),(++)  HAS TROUBLE INTERPRETING ^ (-x^2 incorrectly -> (-x)^2, should be -(x^2))
 	(***),(+)   DOES NOT SUPPORT IMPLICIT FUNCTION CHAINING (sincosx - >sin(cos(x)))
 	*/
-	
-    unsigned int Pos = expr.find('-');  //expanding binary '-'
 
-	while (Pos !=std::string::npos)  
+	unsigned int Pos = 0;
+
+	Pos = expr.find(' ');  //removing spaces
+	while (Pos != std::string::npos)
 	{
-		if (Pos > 0 && std::string("0123456789x)").find(expr[Pos - 1]) != std::string::npos )
+		expr.erase(Pos,1);
+		Pos = expr.find(' ');
+	}
+	Pos = expr.find('-');  //expanding binary '-'
+
+	while (Pos != std::string::npos)
+	{
+		if (Pos > 0 && std::string("0123456789x)").find(expr[Pos - 1]) != std::string::npos)
 		{
 			expr.insert(Pos, 1, '+');
 			Pos++;
@@ -165,18 +172,14 @@ std::string processExpr(std::string expr)
 		Pos = expr.find('-', ++Pos);
 	}
 
-	Pos = expr.find_first_not_of("()^+*/.0123456789x");  //enclosing function arguments
+	Pos = expr.find_first_not_of("-()^+*/.0123456789x");  //enclosing function arguments
 
 	while (Pos != std::string::npos)
 	{
 		unsigned int argStart = 0;
 		unsigned int argEnd = 0;
-		if (expr[Pos] == '-')
-			argStart = Pos + 1;
-		else
-		{
-			argStart = expr.find_first_of("(-0123456789x", Pos + 1);
-		}
+
+		argStart = expr.find_first_of("(-0123456789x", Pos + 1);
 		if (expr[argStart] == '(')
 		{
 			argEnd = findPair(expr, argStart, true);
@@ -184,14 +187,7 @@ std::string processExpr(std::string expr)
 		else
 		{
 			argEnd = expr.find_first_of("(^*/+x", argStart);
-			if (expr[argEnd] == '(')
-			{
-				if (std::string("0123456789x").find(expr[argEnd]) == std::string::npos)
-				{
-					argEnd = findPair(expr, argEnd, true) + 1;
-				}
-			}
-			putParenth(expr, argStart, ++argEnd);
+			putParenth(expr, argStart, argEnd);
 			argEnd++;
 
 		}
@@ -201,7 +197,7 @@ std::string processExpr(std::string expr)
 			argStart++;
 		}
 
-		Pos = expr.find_first_not_of("()^+*/.0123456789x", argStart);
+		Pos = expr.find_first_not_of("-()^+*/.0123456789x", argStart);
 
 	}
 
@@ -209,7 +205,7 @@ std::string processExpr(std::string expr)
 
 	while (Pos != std::string::npos)
 	{
-		if (Pos == expr.length()-1 ||Pos == 0 || expr[Pos - 1] != '(' || expr[Pos + 1] != ')')
+		if (Pos == expr.length() - 1 || Pos == 0 || expr[Pos - 1] != '(' || expr[Pos + 1] != ')')
 		{
 			putParenth(expr, Pos, Pos + 1);
 			Pos++;
@@ -234,6 +230,32 @@ std::string processExpr(std::string expr)
 		Pos = expr.find_first_of("0123456789", ++nrEnd);
 	}
 
+	Pos = expr.rfind('^');  //enclosing '^'
+
+	while (Pos != std::string::npos)
+	{
+		unsigned int leftBound = findPair(expr, Pos - 1, false);
+		unsigned int rightOpen = expr.find('(', Pos);
+		unsigned int rightBound = findPair(expr, rightOpen, true);
+		if (leftBound == 0 || rightBound == expr.length() - 1 || expr[leftBound - 1] != '(' || expr[rightBound + 1] != ')')
+		{
+			putParenth(expr, leftBound, rightBound + 1);
+		}
+		Pos = expr.rfind('^', leftBound);
+	}
+
+	Pos = expr.find('-');  // enclosing '-'
+	while (Pos != std::string::npos)
+	{
+		unsigned int rightBound = findPair(expr, Pos + 1, true);
+		if (Pos == 0 || rightBound == expr.length() - 1 || expr[Pos - 1] != '(' || expr[rightBound + 1] != ')')
+		{
+			putParenth(expr, Pos, rightBound + 1);
+			rightBound++;
+		}
+		Pos = expr.find('-', ++rightBound);
+	}
+
 	Pos = expr.find(')');    //expanding implicit multiplication
 
 	while (Pos != std::string::npos)
@@ -244,22 +266,9 @@ std::string processExpr(std::string expr)
 		}
 		Pos = expr.find(')', ++Pos);
 	}
-	
+
 	/*Enclosing operators*/
-	Pos = expr.find('^');  //enclosing '^'
 
-	while (Pos != std::string::npos)
-	{
-		unsigned int leftBound = findPair(expr, Pos - 1, false);
-		unsigned int rightBound = findPair(expr, Pos + 1, true);
-		if (leftBound == 0 || rightBound == expr.length() - 1 || expr[leftBound - 1] != '(' || expr[rightBound + 1] != ')')
-		{
-
-			putParenth(expr, leftBound, rightBound + 1);
-			rightBound++;
-		}
-		Pos = expr.find('^', ++rightBound);
-	}
 
 	Pos = expr.find_first_of("*/");  //enclosing '*' and '/'
 
@@ -355,7 +364,7 @@ node::functions node::resolveSymbol(std::string fnc)
 
 node::node(std::string expr)
 {
-    unsigned int Pos = expr.find("(");
+	unsigned int Pos = expr.find("(");
 	if (Pos != std::string::npos)
 	{
 		unsigned int closed = findPair(expr, Pos, 1);
@@ -588,11 +597,12 @@ float const node::computeTree(float parameter)
 
 int main()
 {
-	std::string expr = "sin(x)";
-	//std::string processedExpr = processExpr(expr);
-	node operation(expr);
+	std::string expr = "-sin(x) / sqrt(x ^ 3)";
+	std::string processedExpr = processExpr(expr);
+	std::cout << processedExpr << std::endl;
+	node operation(processedExpr);
 	operation.simplifyTree();
-	std::cout << operation.computeTree(1);
+	std::cout << operation.computeTree(5);
+
 	return 0;
 }
-
